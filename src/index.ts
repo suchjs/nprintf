@@ -2,6 +2,33 @@ export interface NormalObject {
   [index: string]: any;
 }
 export const rule = /^%([#\-+0 ]*)?([1-9]\d*)?(?:\.(\d+))?([dfeEoxXi])(%)?$/;
+// padStart/padEnd polyfill
+if(typeof String.prototype.padStart !== 'function') {
+  (() => {
+    const pad = function(target: string, len: number, fill: string = ' ', start: boolean = true) {
+      const curLen = target.length;
+      if(curLen >= len || fill === '') {
+        return target;
+      } else {
+        const fillStrLen = fill.length;
+        let fillTotal = len - curLen;
+        let repeatStr = '';
+        while(fillTotal > fillStrLen) {
+          repeatStr += fill;
+          fillTotal -= fillStrLen;
+        }
+        repeatStr += fill.slice(0, fillTotal);
+        return start ? repeatStr + target : target + repeatStr;
+      }
+    };
+    String.prototype.padStart = function(len: number, fill: string = '') {
+      return pad(this, len, fill);
+    };
+    String.prototype.padEnd = function(len: number, fill: string = '') {
+      return pad(this, len, fill, false);
+    };
+  })();
+}
 const parse = (format: string) => {
   let match: (Array<string | undefined> | null);
   if((match = format.match(rule)) !== null) {

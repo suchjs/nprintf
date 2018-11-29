@@ -1,5 +1,5 @@
 # nprintf
-[![npm version](https://badge.fury.io/js/nprintf.svg)](https://badge.fury.io/js/nprintf)&nbsp;&nbsp;
+[![npm version](https://badge.fury.io/js/nprintf.svg)](https://badge.fury.io/js/nprintf)&nbsp;&nbsp;[![Build Status](https://travis-ci.org/suchjs/nprintf.svg?branch=master)](https://travis-ci.org/suchjs/nprintf)
 
 format numbers like c printf.
 
