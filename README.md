@@ -1,4 +1,6 @@
 # nprintf
+[![npm version](https://badge.fury.io/js/nprintf.svg)](https://badge.fury.io/js/nprintf)&nbsp;&nbsp;
+
 format numbers like c printf.
 
 ## How to use
