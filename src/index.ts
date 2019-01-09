@@ -93,10 +93,15 @@ const parse = (format: string) => {
   }
 };
 const printf = (format: string | NormalObject, target: number): string | number => {
-  if(typeof target !== 'number') {throw new Error(`the second param must be a number[${target}]`); }
+  if(typeof target !== 'number') {
+    throw new Error(`the second param must be a number[${target}]`);
+  }
   const conf = typeof format === 'string' ? parse(format) : format;
   let result: number | string;
   const isFloatType = conf.type === 'f';
+  if(Object.is(target, -0)) {
+    conf.prefix = '-';
+  }
   switch(conf.type) {
     case 'd':
     case 'i':
@@ -174,6 +179,7 @@ const printf = (format: string | NormalObject, target: number): string | number 
   if(conf.percent) {
     result += '%';
   }
-  return /^(?:[+ ]|0(?!\.\d+|$)|-(?![1-9]))|[ %0]$/.test(result as string) ? result : Number(result);
+  const nResult = Number(result);
+  return !isNaN(nResult) && (nResult.toString() === result || nResult === 0) ? nResult : result;
 };
 export default printf;

@@ -2,6 +2,7 @@ import printf from '../src/index';
 
 test('test printf', () => {
   expect(printf('%d', 22.2)).toBe(22);
+  expect(printf('%d', -0)).toBe(-0);
   expect(printf('%.0f', 22.2)).toBe(22);
   expect(printf('%05d', 22.2)).toBe('00022');
   expect(printf('%f', 22.2)).toBe('22.200000');
