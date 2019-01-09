@@ -180,6 +180,6 @@ const printf = (format: string | NormalObject, target: number): string | number 
     result += '%';
   }
   const nResult = Number(result);
-  return !isNaN(nResult) && (nResult.toString() === result || Object.is(result, -0)) ? nResult : result;
+  return !isNaN(nResult) && (nResult.toString() === result || result === '-0') ? nResult : result;
 };
 export default printf;
