@@ -29,6 +29,15 @@ if(typeof String.prototype.padStart !== 'function') {
     };
   })();
 }
+if (!Object.is) {
+  Object.is = function(x, y) {
+    if (x === y) {
+      return x !== 0 || 1 / x === 1 / y;
+    } else {
+      return x !== x && y !== y;
+    }
+  };
+}
 const parse = (format: string) => {
   let match: (Array<string | undefined> | null);
   if((match = format.match(rule)) !== null) {
@@ -99,6 +108,7 @@ const printf = (format: string | NormalObject, target: number): string | number 
   const conf = typeof format === 'string' ? parse(format) : format;
   let result: number | string;
   const isFloatType = conf.type === 'f';
+  const isNagZero = Object.is(target, -0);
   if(Object.is(target, -0)) {
     conf.prefix = '-';
   }
@@ -112,9 +122,9 @@ const printf = (format: string | NormalObject, target: number): string | number 
       } else {
         result = Math.round(target);
       }
-      if(result < 0) {
+      if(result < 0 || isNagZero) {
         conf.prefix = '-';
-        result = result.toString().slice(1);
+        result = result.toString().slice(1) || '0';
       } else {
         result = result.toString();
       }
@@ -179,7 +189,14 @@ const printf = (format: string | NormalObject, target: number): string | number 
   if(conf.percent) {
     result += '%';
   }
-  const nResult = Number(result);
-  return !isNaN(nResult) && (nResult.toString() === result || result === '-0') ? nResult : result;
+  if(/^-?(?:[1-9]+[0-9]*|0)(\.\d+)?$/.test(result as string)) {
+    const percision = RegExp.$1;
+    const nResult = Number(result);
+    if(percision && percision.slice(-1) === '0') {
+      return nResult.toFixed(percision.length - 1);
+    }
+    return nResult;
+  }
+  return result;
 };
 export default printf;
