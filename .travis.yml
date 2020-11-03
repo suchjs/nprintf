@@ -1,10 +1,13 @@
 language: node_js
-node_js: 
-  - '7'
-  - '8'
-  - '9'
+install:
+  - yarn
+node_js:
+  - '11'
+  - '12'
+  - '13'
+  - '14'
 sudo: false
 script:
-  - "npm test"
+  - 'npm test'
 after_script:
-  - "npm run coverage"
+  - 'npm run coverage'

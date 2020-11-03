@@ -1,148 +1,132 @@
-export interface NormalObject {
-  [index: string]: any;
-}
-export const rule = /^%([#\-+0 ]*)?([1-9]\d*)?(?:\.(\d+))?([dfeEoxXi])(%)?$/;
-// padStart/padEnd polyfill
-if(typeof String.prototype.padStart !== 'function') {
-  (() => {
-    const pad = function(target: string, len: number, fill: string = ' ', start: boolean = true) {
-      const curLen = target.length;
-      if(curLen >= len || fill === '') {
-        return target;
-      } else {
-        const fillStrLen = fill.length;
-        let fillTotal = len - curLen;
-        let repeatStr = '';
-        while(fillTotal > fillStrLen) {
-          repeatStr += fill;
-          fillTotal -= fillStrLen;
-        }
-        repeatStr += fill.slice(0, fillTotal);
-        return start ? repeatStr + target : target + repeatStr;
-      }
-    };
-    String.prototype.padStart = function(len: number, fill: string = '') {
-      return pad(this, len, fill);
-    };
-    String.prototype.padEnd = function(len: number, fill: string = '') {
-      return pad(this, len, fill, false);
-    };
-  })();
-}
-if (!Object.is) {
-  Object.is = function(x, y) {
-    if (x === y) {
-      return x !== 0 || 1 / x === 1 / y;
-    } else {
-      return x !== x && y !== y;
-    }
-  };
-}
-const parse = (format: string) => {
-  let match: (Array<string | undefined> | null);
-  if((match = format.match(rule)) !== null) {
-    const conf = {
-      align: 'right',
-      type: '',
-      fill: ' ',
-      prefix: '',
-      digits: 6,
-      minWidth: 1,
-      hash: false,
-      percent: false,
-    };
-    const [_, flags, width, precision, type, percent] = match;
-    const isFloatType = ['f', 'e', 'E'].indexOf(type) > -1;
-    // eg:%.2d %.2o
-    if(precision !== undefined && !isFloatType) {
-      throw new Error(`the type of "${type}" should not have a percision width`);
-    }
-    conf.type = type;
-    conf.digits = precision !== undefined ? +precision : conf.digits;
-    conf.minWidth = width !== undefined ? +width : conf.minWidth;
-    conf.percent = percent === '%';
-    // parse flags
-    if(flags !== undefined) {
-      const segs = flags.split('');
-      let seg;
-      let exists = '';
-      while((seg = segs.shift()) !== undefined) {
-        if(exists.indexOf(seg) > -1) {
-          throw new Error(`repeated flag of (${seg})`);
-        } else {
-          exists += seg;
-          switch(seg) {
-            case '+':
-              conf.prefix = '+';
-              break;
-            case ' ':
-              if(conf.prefix !== '+') {
-                conf.prefix = ' ';
-              }
-              break;
-            case '0':
-              if(conf.align !== 'left') {
-                conf.fill = '0';
-              }
-              break;
-            case '-':
-              conf.align = 'left';
-              conf.fill = ' ';
-              break;
-            case '#':
-              conf.hash = true;
-              break;
-          }
-        }
-      }
-    }
-    return conf;
-  } else {
-    throw new Error('wrong format param');
-  }
+/*
+ * wiki: https://en.wikipedia.org/wiki/Printf_format_string
+ */
+export type Conf = {
+  align: 'left' | 'right';
+  type: string;
+  fill: string;
+  prefix: string;
+  digits: number;
+  minWidth: number;
+  hash: boolean;
+  percent: boolean;
+  string?: boolean;
 };
-const printf = (format: string | NormalObject, target: number): string | number => {
-  if(typeof target !== 'number') {
-    throw new Error(`the second param must be a number[${target}]`);
+export const rule = /^%([-+#0 ]*)?([1-9]\d*)?(?:\.(\d+))?([dfeEoxXi])(%)?$/;
+type ParseResult = {
+  result: string;
+  conf: Conf;
+};
+const parse = (format: string): Conf | never => {
+  const match = format.match(rule);
+  if (match === null) {
+    throw new Error(
+      `Wrong formatting template: '${format}', should match the rule:${rule.toString()}`,
+    );
+  }
+  const conf: Conf = {
+    align: 'right',
+    type: '',
+    fill: ' ',
+    prefix: '',
+    digits: 6,
+    minWidth: 1,
+    hash: false,
+    percent: false,
+  };
+  const [_, flags, width, precision, type, percent] = match;
+  const isFloatType = ['f', 'e', 'E'].includes(type);
+  // eg:%.2d %.2o
+  if (precision !== undefined && !isFloatType) {
+    throw new Error(`the type of "${type}" should not have a percision width`);
+  }
+  conf.type = type;
+  conf.digits = precision !== undefined ? +precision : conf.digits;
+  conf.minWidth = width !== undefined ? +width : conf.minWidth;
+  conf.percent = percent === '%';
+  // parse flags
+  if (flags !== undefined) {
+    const segs = flags.split('');
+    let seg;
+    let exists = '';
+    while ((seg = segs.shift()) !== undefined) {
+      if (exists.includes(seg)) {
+        throw new Error(`Repeated flag of '${seg}' in '${format}'`);
+      }
+      exists += seg;
+      switch (seg) {
+        case '+':
+          conf.prefix = '+';
+          break;
+        case ' ':
+          if (conf.prefix !== '+') {
+            conf.prefix = ' ';
+          }
+          break;
+        case '0':
+          if (conf.align !== 'left') {
+            conf.fill = '0';
+          }
+          break;
+        case '-':
+          conf.align = 'left';
+          conf.fill = ' ';
+          break;
+        case '#':
+          conf.hash = true;
+          break;
+      }
+    }
+  }
+  return conf;
+};
+const printf = (format: string | Conf, target: number): ParseResult => {
+  if (typeof target !== 'number') {
+    throw new Error(`The second param must be a number,got '${target}'`);
   }
   const conf = typeof format === 'string' ? parse(format) : format;
-  let result: number | string;
   const isFloatType = conf.type === 'f';
-  const isNagZero = Object.is(target, -0);
-  if(Object.is(target, -0)) {
+  const isNegZero = Object.is(target, -0);
+  let result: number | string;
+  if (Object.is(target, -0)) {
     conf.prefix = '-';
   }
-  switch(conf.type) {
+  switch (conf.type) {
     case 'd':
     case 'i':
     case 'f':
-      if(isFloatType) {
+      if (isFloatType) {
         const ep = Math.pow(10, conf.digits);
         result = Math.round(target * ep) / ep;
       } else {
         result = Math.round(target);
       }
-      if(result < 0 || isNagZero) {
+      if (result < 0 || isNegZero) {
         conf.prefix = '-';
         result = result.toString().slice(1) || '0';
       } else {
         result = result.toString();
       }
-      if(isFloatType) {
+      if (isFloatType) {
         const segs = result.split('.');
-        result = segs[0] + (conf.digits ? '.' + (segs[1] || '0').padEnd(conf.digits, '0') : '');
+        const suffix = conf.digits
+          ? '.' + (segs[1] || '0').padEnd(conf.digits, '0')
+          : '';
+        result = segs[0] + suffix;
+        conf.string = suffix.slice(-1) === '0';
       }
       break;
     case 'o':
     case 'x':
     case 'X':
+      conf.string = true;
       result = target > 0 ? Math.floor(target) : Math.ceil(target);
-      if(result < 0) {
+      if (result < 0) {
         conf.prefix = '-';
       }
-      if(conf.type === 'o') {
+      if (conf.type === 'o') {
         result = Math.abs(result).toString(8);
-        if(conf.hash) {
+        if (conf.hash) {
           result = '0' + result;
         } else {
           result = result.toString();
@@ -150,53 +134,73 @@ const printf = (format: string | NormalObject, target: number): string | number 
       } else {
         result = Math.abs(result).toString(16);
         const isUpper = conf.type === 'X';
-        if(conf.hash) {
+        if (conf.hash) {
           conf.prefix += isUpper ? '0X' : '0x';
         }
-        if(isUpper) {
+        if (isUpper) {
           result = result.toUpperCase();
         }
       }
       break;
     case 'e':
     case 'E':
+      conf.string = true;
       const e = Math.floor(Math.log10(target));
       let point = e.toString();
-      if(e < 0) {
-        if(e >= -9) {
+      if (e < 0) {
+        if (e >= -9) {
           point = '-0' + point.charAt(1);
         }
       } else {
-        if(e <= 9) {
+        if (e <= 9) {
           point = '0' + point;
         }
         point = '+' + point;
       }
       point = conf.type + point;
-      return printf(Object.assign({}, conf, {
+      const curConf: Conf = {
+        ...conf,
         type: 'f',
         minWidth: conf.minWidth - point.length,
         percent: false,
-      }), target / Math.pow(10, e)) + point + (conf.percent ? '%' : '');
+      };
+      return {
+        conf: curConf,
+        result:
+          printf(
+            {
+              ...curConf,
+            },
+            target / Math.pow(10, e),
+          ).result +
+          point +
+          (conf.percent ? '%' : ''),
+      };
   }
   const width = conf.minWidth;
   const fn = conf.align === 'right' ? 'padStart' : 'padEnd';
-  if(conf.fill === '0') {
-    result = conf.prefix + (result as string)[fn](width - conf.prefix.length, conf.fill);
+  let needPad: boolean;
+  if (conf.fill === '0') {
+    const padLen = width - conf.prefix.length;
+    const nowResult = result as string;
+    result = conf.prefix + nowResult[fn](padLen, conf.fill);
+    needPad = padLen - nowResult.length > 0;
   } else {
-    result = (conf.prefix + result)[fn](width, conf.fill);
+    const nowResult = conf.prefix + result;
+    result = nowResult[fn](width, conf.fill);
+    needPad = width - nowResult.length > 0;
   }
-  if(conf.percent) {
+  conf.string = conf.string || conf.prefix === '+' || needPad;
+  if (conf.percent) {
     result += '%';
+    conf.string = true;
   }
-  if(/^-?(?:[1-9]+[0-9]*|0)(\.\d+)?$/.test(result as string)) {
-    const percision = RegExp.$1;
-    const nResult = Number(result);
-    if(percision && percision.slice(-1) === '0') {
-      return nResult.toFixed(percision.length - 1);
-    }
-    return nResult;
-  }
-  return result;
+  return {
+    result,
+    conf,
+  };
 };
-export default printf;
+export default (format: string, num: number): number | string => {
+  const { conf, result } = printf(format, num);
+  return conf.string ? result : Number(result);
+};
