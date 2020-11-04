@@ -3,7 +3,10 @@ install:
   - yarn
 node_js:
   - '12'
-sudo: false
+os:
+  - 'linux'
+dist:
+  - 'nprintf'
 script:
   - 'npm test'
 after_script:
