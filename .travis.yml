@@ -5,8 +5,6 @@ node_js:
   - '12'
 os:
   - 'linux'
-dist:
-  - 'nprintf'
 script:
   - 'npm test'
 after_script:
