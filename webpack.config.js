@@ -20,7 +20,7 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
   output: {
-    filename: 'reregexp.min.js',
+    filename: 'nprintf.min.js',
     path: path.resolve(__dirname, 'dist'),
   },
 };
