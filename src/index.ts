@@ -119,12 +119,20 @@ const printf = (format: string | Conf, target: number): ParseResult => {
     case 'o':
     case 'x':
     case 'X':
-      conf.string = true;
-      result = target > 0 ? Math.floor(target) : Math.ceil(target);
-      if (result < 0) {
-        conf.prefix = '-';
+      const isOctal = conf.type === 'o';
+      if (target < 0) {
+        throw new Error(
+          `a negative number ${target} can't format to ${
+            isOctal ? 'octal' : 'hex'
+          }`,
+        );
       }
-      if (conf.type === 'o') {
+      // always output string
+      conf.string = true;
+      // ignore '+' prefix
+      conf.prefix = '';
+      result = Math.floor(target);
+      if (isOctal) {
         result = Math.abs(result).toString(8);
         if (conf.hash) {
           result = '0' + result;
@@ -144,6 +152,9 @@ const printf = (format: string | Conf, target: number): ParseResult => {
       break;
     case 'e':
     case 'E':
+      if (target < 0) {
+        throw new Error(`a negative number ${target} can't format to hex`);
+      }
       conf.string = true;
       const e = Math.floor(Math.log10(target));
       let point = e.toString();
@@ -190,7 +201,11 @@ const printf = (format: string | Conf, target: number): ParseResult => {
     result = nowResult[fn](width, conf.fill);
     needPad = width - nowResult.length > 0;
   }
-  conf.string = conf.string || conf.prefix === '+' || needPad;
+  conf.string =
+    conf.string ||
+    conf.prefix === '+' ||
+    (conf.prefix === '-' && Number(result) === 0) ||
+    needPad;
   if (conf.percent) {
     result += '%';
     conf.string = true;

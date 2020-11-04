@@ -1,6 +1,7 @@
 # nprintf
 
 [![npm version](https://badge.fury.io/js/nprintf.svg)](https://badge.fury.io/js/nprintf)&nbsp;&nbsp;[![Build Status](https://travis-ci.org/suchjs/nprintf.svg?branch=master)](https://travis-ci.org/suchjs/nprintf)
+[![Coverage Status](https://coveralls.io/repos/github/suchjs/nprintf/badge.svg?branch=master)](https://coveralls.io/github/suchjs/nprintf?branch=master)
 
 将一个数字格式化，转换方式和 c 语言的 printf 方法保持一致。
 
