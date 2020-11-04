@@ -3,6 +3,8 @@ import printf from '../src/index';
 describe('Test all supported foramtting', () => {
   // throw
   test('test wrong params', () => {
+    const wrongNumber: number = ('22.2' as unknown) as number;
+    expect(() => printf('%a', wrongNumber)).toThrow();
     expect(() => printf('%a', 22.2)).toThrow();
     expect(() => printf('%.2d', 22.2)).toThrow();
     expect(() => printf('%#++d', 22.2)).toThrow();
@@ -28,7 +30,10 @@ describe('Test all supported foramtting', () => {
   test('test float', () => {
     expect(printf('%f', 22.2)).toEqual((22.2).toFixed(6));
     expect(printf('%.0f', 22.2)).toEqual(22);
+    expect(printf('% f', 22.2)).toEqual(' 22.200000');
+    expect(printf('% .2f', 22.2)).toEqual(' 22.20');
     expect(printf('%.0f', 22.5)).toEqual(23);
+    expect(printf('%.05f', 22.5)).toEqual((22.5).toFixed(5));
     expect(printf('%.2f', 22.2)).toEqual((22.2).toFixed(2));
     expect(printf('%+.2f', 22.2)).toEqual('+22.20');
     expect(printf('%+7.2f', 22.2)).toEqual(' +22.20');
@@ -63,7 +68,9 @@ describe('Test all supported foramtting', () => {
   test('test exponentiation', () => {
     expect(printf('%06.2e', 22.2)).toEqual('2.22e+01');
     expect(printf('%09.2e', 22.2)).toEqual('02.22e+01');
+    expect(printf('%09.2E', 22.2)).toEqual('02.22E+01');
     expect(() => printf('%09.2e', -22.2)).toThrow();
     expect(printf('%09.2e', 0.00222)).toEqual('02.22e-03');
+    expect(printf('%09.2E', 0.00222)).toEqual('02.22E-03');
   });
 });
